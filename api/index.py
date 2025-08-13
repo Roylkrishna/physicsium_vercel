@@ -35,6 +35,10 @@ def test1():
     #return render_template("AtomicSolid-Vpython.html")
     return render_template("test1.html")
 
+@app.route('/cubic_test')
+def cubic_test():
+    #return render_template("AtomicSolid-Vpython.html")
+    return render_template("cubic_test.html")
 
 
 if __name__ == '__main__':
