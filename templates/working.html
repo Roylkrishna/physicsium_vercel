@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>GlowScript Crystal Viewer</title>
+<link rel="stylesheet" href="https://www.glowscript.org/css/redmond/2.1/jquery-ui.custom.css" />
+<link rel="stylesheet" href="https://www.glowscript.org/css/ide.css" />
+<script src="https://www.glowscript.org/lib/jquery/2.1/jquery.min.js"></script>
+<script src="https://www.glowscript.org/lib/jquery/2.1/jquery-ui.custom.min.js"></script>
+<script src="https://www.glowscript.org/package/glow.3.2.min.js"></script>
+<script src="https://www.glowscript.org/package/RSrun.3.2.min.js"></script>
+<style>body { margin: 20px; } button { margin: 5px; }</style>
+</head>
+<body>
+
+<button id="btnBCC">Show BCC</button>
+<button id="btnFCC">Show FCC</button>
+<button id="btnClear">Clear</button>
+
+<div id="glowscript" class="glowscript"></div>
+
+<script type="text/javascript">
+// Wrap everything inside GlowScript's async __main__ so it works properly
+(function () {
+  async function __main__() {
+    // Create canvas
+    let scene = canvas();
+    scene.title = "Crystal Structure Viewer";
+    scene.range = 5;
+    scene.background = vec(0.9, 0.9, 0.9);
+
+    // Draw coordinate axes
+    const axisLength = 4;
+    const axisThickness = 0.02;
+    box({ pos: vec(axisLength / 2, 0, 0), size: vec(axisLength, axisThickness, axisThickness), color: color.red });
+    box({ pos: vec(0, axisLength / 2, 0), size: vec(axisThickness, axisLength, axisThickness), color: color.green });
+    box({ pos: vec(0, 0, axisLength / 2), size: vec(axisThickness, axisThickness, axisLength), color: color.blue });
+
+    let atoms = [];
+
+    function clearAtoms() {
+      for (let a of atoms) {
+        a.visible = false;
+        if (a.delete) a.delete();
+      }
+      atoms = [];
+    }
+
+   function createBCC() {
+  clearAtoms();
+  let L = 2; // cube edge length
+  let r = (Math.sqrt(3) * L) / 4; // atomic radius for touching atoms in BCC
+
+  // corners of the cube
+  const corners = [
+    vec(0, 0, 0), vec(L, 0, 0), vec(0, L, 0), vec(0, 0, L),
+    vec(L, L, 0), vec(0, L, L), vec(L, 0, L), vec(L, L, L)
+  ];
+  for (let pos of corners) {
+    atoms.push(sphere({ pos: pos, radius: r, color: color.orange, opacity: 1 }));
+  }
+
+  // center atom
+  atoms.push(sphere({ pos: vec(L/2, L/2, L/2), radius: r, color: color.orange, opacity: 1 }));
+}
+
+
+    function createFCC() {
+      clearAtoms();
+      let L = 2;
+      let r = L / (2 * Math.sqrt(2)); // for touching atoms in FCC
+
+      const corners = [
+        vec(0, 0, 0), vec(L, 0, 0), vec(0, L, 0), vec(0, 0, L),
+        vec(L, L, 0), vec(0, L, L), vec(L, 0, L), vec(L, L, L)
+      ];
+      for (let pos of corners) {
+        atoms.push(sphere({ pos: pos, radius: r, color: color.cyan, opacity: 1 }));
+      }
+
+      const faces = [
+        vec(L / 2, L / 2, 0), vec(L / 2, 0, L / 2), vec(0, L / 2, L / 2),
+        vec(L / 2, L / 2, L), vec(L / 2, L, L / 2), vec(L, L / 2, L / 2)
+      ];
+      for (let pos of faces) {
+        atoms.push(sphere({ pos: pos, radius: r, color: color.cyan, opacity: 1 }));
+      }
+    }
+
+    // Expose functions globally for buttons to access
+    window.createBCC = createBCC;
+    window.createFCC = createFCC;
+    window.clearAtoms = clearAtoms;
+  }
+
+  // Run GlowScript code
+  $(function () {
+    window.__context = { glowscript_container: $("#glowscript").removeAttr("id") };
+    __main__().then(() => {
+      // Bind buttons after GlowScript is ready
+      $("#btnBCC").click(() => window.createBCC());
+      $("#btnFCC").click(() => window.createFCC());
+      $("#btnClear").click(() => window.clearAtoms());
+    });
+  });
+})();
+</script>
+
+</body>
+</html>

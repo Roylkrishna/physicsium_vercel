@@ -1,0 +1,63 @@
+<div id="glowscript" class="glowscript">
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<link type="text/css" href="https://www.glowscript.org/css/redmond/2.1/jquery-ui.custom.css" rel="stylesheet" />
+<link type="text/css" href="https://www.glowscript.org/css/ide.css" rel="stylesheet" />
+<script type="text/javascript" src="https://www.glowscript.org/lib/jquery/2.1/jquery.min.js"></script>
+<script type="text/javascript" src="https://www.glowscript.org/lib/jquery/2.1/jquery-ui.custom.min.js"></script>
+<script type="text/javascript" src="https://www.glowscript.org/package/glow.3.2.min.js"></script>
+<script type="text/javascript"><!--//--><![CDATA[//><!--
+
+// START JAVASCRIPT
+;(function() {;
+async function __main__() {
+"use strict";
+var version = ["3.2", "glowscript"];
+Array.prototype.toString = function() { return __parsearray(this) };
+var scene = canvas();
+var N = 10
+
+scene.title = N["+"](' by ')["+"](N)["+"](' by ')["+"](N)["+"](' = ')["+"](N["*"](N)["*"](N))["+"](' rotating cubes')   
+// Display frames per second and render time:
+scene.append_to_title("\n<div id='fps'/>")
+
+scene.caption = "Click a box to turn it white"
+
+let boxes = []
+
+let L = 6
+let b
+scene.range = L
+
+for(let x=0; x["<"](N); x++)
+  for(let y=0; y["<"](N); y++)
+    for(let z=0; z["<"](N); z++) {
+        b = box({color:vec(x["/"](N),y["/"](N),z["/"](N)), 
+                pos:vec(L["*"](x["/"](N["-"](1))["-"](.5)),L["*"](y["/"](N["-"](1))["-"](.5)),L["*"](z["/"](N["-"](1))["-"](.5))), 
+                size:vec(.6["*"](L)["/"](N),.4["*"](L)["/"](N),.6["*"](L)["/"](N))})
+        boxes.push(b)
+    }
+ 
+
+let lasthit = null
+let lastcolor = null
+scene.bind("click", function() {
+    if (lasthit !== null) lasthit.color = lastcolor
+    let hit = scene.mouse.pick()
+    if (hit) {
+        lasthit = hit
+        lastcolor = lasthit.color
+        hit.color = color.white
+    }
+})
+
+while (true) {
+    await rate(200)
+    for(let i=0; i["<"](boxes.length); i++)
+        boxes[i].rotate({angle:0.01, axis:vec(0,1,0)})
+}
+}
+;$(function(){ window.__context = { glowscript_container: $("#glowscript").removeAttr("id") }; __main__() })})()
+// END JAVASCRIPT
+
+//--><!]]></script>
+</div>

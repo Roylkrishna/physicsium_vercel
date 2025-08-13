@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>GlowScript BCC Crystal Example</title>
+<link href="https://www.glowscript.org/css/redmond/2.1/jquery-ui.custom.css" rel="stylesheet" />
+<link href="https://www.glowscript.org/css/ide.css" rel="stylesheet" />
+<script src="https://www.glowscript.org/lib/jquery/2.1/jquery.min.js"></script>
+<script src="https://www.glowscript.org/lib/jquery/2.1/jquery-ui.custom.min.js"></script>
+<script src="https://www.glowscript.org/package/glow.3.2.min.js"></script>
+</head>
+<body>
+
+<div id="glowscript" class="glowscript"></div>
+
+<script>
+;(function() {
+async function __main__() {
+    "use strict";
+    var scene = canvas({width: 800, height: 600, background: color.white});
+    scene.range = 3;
+
+    // Axes
+    var axis_len = 3;
+    arrow({pos: vec(0,0,0), axis: vec(axis_len,0,0), color: color.red, shaftwidth: 0.03});
+    arrow({pos: vec(0,0,0), axis: vec(0,axis_len,0), color: color.green, shaftwidth: 0.03});
+    arrow({pos: vec(0,0,0), axis: vec(0,0,axis_len), color: color.blue, shaftwidth: 0.03});
+
+    // Plane x + y + z = 1
+    var plane_color = color.yellow;
+    var opacity_val = 0.6;
+    var L = 5;
+    var p1 = vec(L, 0, 1 - L);
+    var p2 = vec(0, L, 1 - L);
+    var p3 = vec(1 - L, L, 0);
+    var p4 = vec(L, 1 - L, 0);
+    var p5 = vec(0, 1 - L, L);
+    var p6 = vec(1 - L, 0, L);
+
+    quad({
+        v0: vertex({pos: p1, color: plane_color, opacity: opacity_val}),
+        v1: vertex({pos: p2, color: plane_color, opacity: opacity_val}),
+        v2: vertex({pos: p5, color: plane_color, opacity: opacity_val}),
+        v3: vertex({pos: p6, color: plane_color, opacity: opacity_val})
+    });
+
+    quad({
+        v0: vertex({pos: p2, color: plane_color, opacity: opacity_val}),
+        v1: vertex({pos: p3, color: plane_color, opacity: opacity_val}),
+        v2: vertex({pos: p4, color: plane_color, opacity: opacity_val}),
+        v3: vertex({pos: p6, color: plane_color, opacity: opacity_val})
+    });
+
+    // BCC atoms
+    var a = 1;
+    var r = (Math.sqrt(3) / 4) * a;
+    var atom_color = color.cyan;
+
+    var corners = [
+        vec(0, 0, 0), vec(a, 0, 0), vec(0, a, 0), vec(0, 0, a),
+        vec(a, a, 0), vec(a, 0, a), vec(0, a, a), vec(a, a, a)
+    ];
+    for (var c of corners) {
+        sphere({pos: c, radius: r, color: atom_color});
+    }
+    sphere({pos: vec(a/2, a/2, a/2), radius: r, color: atom_color});
+}
+
+// Wait for jQuery ready, then run __main__
+jQuery(function() {
+    window.__context = { glowscript_container: jQuery("#glowscript").removeAttr("id") };
+    __main__();
+});
+})();
+</script>
+
+</body>
+</html>

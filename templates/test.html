@@ -1,0 +1,294 @@
+<div id="glowscript" class="glowscript">
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<link type="text/css" href="https://www.glowscript.org/css/redmond/2.1/jquery-ui.custom.css" rel="stylesheet" />
+<link type="text/css" href="https://www.glowscript.org/css/ide.css" rel="stylesheet" />
+<script type="text/javascript" src="https://www.glowscript.org/lib/jquery/2.1/jquery.min.js"></script>
+<script type="text/javascript" src="https://www.glowscript.org/lib/jquery/2.1/jquery-ui.custom.min.js"></script>
+<script type="text/javascript" src="https://www.glowscript.org/package/glow.3.2.min.js"></script>
+<script type="text/javascript" src="https://www.glowscript.org/package/RSrun.3.2.min.js"></script>
+<script type="text/javascript"><!--//--><![CDATA[//><!--
+
+// START JAVASCRIPT
+;(function() {;
+var ρσ_modules = {};
+ρσ_modules.pythonize = {};
+
+(function(){
+    function strings() {
+        var string_funcs, exclude, name;
+        string_funcs = set("capitalize strip lstrip rstrip islower isupper isspace lower upper swapcase center count endswith startswith find rfind index rindex format join ljust rjust partition rpartition replace split rsplit splitlines zfill".split(" "));
+        if (!arguments.length) {
+            exclude = (function(){
+                var s = ρσ_set();
+                s.jsset.add("split");
+                s.jsset.add("replace");
+                return s;
+            })();
+        } else if (arguments[0]) {
+            exclude = Array.prototype.slice.call(arguments);
+        } else {
+            exclude = null;
+        }
+        if (exclude) {
+            string_funcs = string_funcs.difference(set(exclude));
+        }
+        var ρσ_Iter0 = string_funcs;
+        ρσ_Iter0 = ((typeof ρσ_Iter0[Symbol.iterator] === "function") ? (ρσ_Iter0 instanceof Map ? ρσ_Iter0.keys() : ρσ_Iter0) : Object.keys(ρσ_Iter0));
+        for (var ρσ_Index0 of ρσ_Iter0) {
+            name = ρσ_Index0;
+            (ρσ_expr_temp = String.prototype)[(typeof name === "number" && name < 0) ? ρσ_expr_temp.length + name : name] = (ρσ_expr_temp = ρσ_str.prototype)[(typeof name === "number" && name < 0) ? ρσ_expr_temp.length + name : name];
+        }
+    };
+    if (!strings.__module__) Object.defineProperties(strings, {
+        __module__ : {value: "pythonize"}
+    });
+
+    ρσ_modules.pythonize.strings = strings;
+})();
+async function __main__() {
+"use strict";
+    var display = canvas;
+    var scene = canvas();
+
+    var version, print, arange, __name__, type, ρσ_ls, N, k, m, spacing, atom_radius, L0, V0, dt, axes, _GS_1, c, atom, L, Ls, Fdt, spring;
+    version = ρσ_list_decorate([ "3.2", "glowscript" ]);
+    Array.prototype['+'] = function(r) {return this.concat(r)}
+    Array.prototype['*'] = function(r) {return __array_times_number(this, r)}
+    window.__GSlang = "vpython";
+    print = GSprint;
+    arange = range;
+    __name__ = "__main__";
+    type = pytype;
+    var strings = ρσ_modules.pythonize.strings;
+
+    strings();
+    "5";
+    N = 4;
+    "8";
+    k = 1;
+    "9";
+    m = 1;
+    "10";
+    spacing = 1;
+    "11";
+    atom_radius = .3["*"](spacing);
+    "12";
+    L0 = spacing["-"](1["*"](1.8)["*"](atom_radius));
+    "13";
+    V0 = pi["*"](Math.pow((.5["*"](atom_radius)), 2))["*"](L0);
+    "14";
+    scene.center = .5["*"](N["-"](1["*"](1)))["*"](vector(1, 1, 1));
+    "15";
+    dt = .04["*"](2)["*"](pi)["*"](sqrt(m["/"](k)));
+    "16";
+    axes = ρσ_list_decorate([ vector(1, 0, 0), vector(0, 1, 0), vector(0, 0, 1) ]);
+    "24";
+    scene.caption = "A model of a solid represented as atoms connected by interatomic bonds.\n\nTo rotate \"camera\", drag with right button or Ctrl-drag.\nTo zoom, drag with middle button or Alt/Option depressed, or use scroll wheel.\n  On a two-button mouse, middle is left + right.\nTo pan left/right and up/down, Shift-drag.\nTouch screen: pinch/extend to zoom, swipe or two-finger rotate.";
+    "26";
+    function crystal() {;
+    }
+    crystal.prototype.__init__ = async function __init__(N, atom_radius, spacing, momentumRange) {
+        var self = this;
+        var ρσ_ls, atom, p, x, y, z;
+        "29";
+        self.atoms = ρσ_list_decorate([]);
+        "30";
+        self.springs = ρσ_list_decorate([]);
+        "33";
+        for (var ρσ_Index1 = 1["-u"]()["*"](1); ρσ_Index1["<"](N["+"](1)); ρσ_Index1=ρσ_Index1["+"](1)) {
+            z = ρσ_Index1;
+            "34";
+            for (var ρσ_Index2 = 1["-u"]()["*"](1); ρσ_Index2["<"](N["+"](1)); ρσ_Index2=ρσ_Index2["+"](1)) {
+                y = ρσ_Index2;
+                "35";
+                for (var ρσ_Index3 = 1["-u"]()["*"](1); ρσ_Index3["<"](N["+"](1)); ρσ_Index3=ρσ_Index3["+"](1)) {
+                    x = ρσ_Index3;
+                    "36";
+                    atom = sphere();
+                    "37";
+                    atom.pos = vector(x, y, z)["*"](spacing);
+                    "38";
+                    atom.radius = atom_radius;
+                    "39";
+                    atom.color = vector(0, .58, .69);
+                    "40";
+                    if (0["<="](x) && x["<"](N) && 0["<="](y) && y["<"](N) && 0["<="](z) && z["<"](N)) {
+                        "41";
+                        p = vec.random();
+                        "42";
+                        atom.momentum = momentumRange["*"](p);
+                        "43";
+                    } else {
+                        "44";
+                        atom.visible = false;
+                        "45";
+                        atom.momentum = vec(0, 0, 0);
+                    }
+                    "46";
+                    atom.index = len(self.atoms);
+                    "47";
+                    self.atoms.append(atom);
+                }
+            }
+        }
+        "48";
+        var ρσ_Iter4 = self.atoms;
+        ρσ_Iter4 = ((typeof ρσ_Iter4[Symbol.iterator] === "function") ? (ρσ_Iter4 instanceof Map ? ρσ_Iter4.keys() : ρσ_Iter4) : Object.keys(ρσ_Iter4));
+        for (var ρσ_Index4 of ρσ_Iter4) {
+            atom = ρσ_Index4;
+            "49";
+            if (atom.visible) {
+                "50";
+                if ((atom.pos.x === 0 || typeof atom.pos.x === "object" && ρσ_equals(atom.pos.x, 0))) {
+                    "51";
+                    (await self.make_spring(ρσ_getitem(self.atoms, atom.index["-"](1["*"](1))), atom, false));
+                    "52";
+                    (await self.make_spring(atom, ρσ_getitem(self.atoms, atom.index["+"](1)), true));
+                    "53";
+                } else if (ρσ_equals(atom.pos.x, N["-"](1["*"](1)))) {
+                    "54";
+                    (await self.make_spring(atom, ρσ_getitem(self.atoms, atom.index["+"](1)), false));
+                    "55";
+                } else {
+                    "56";
+                    (await self.make_spring(atom, ρσ_getitem(self.atoms, atom.index["+"](1)), true));
+                    "58";
+                }
+                if ((atom.pos.y === 0 || typeof atom.pos.y === "object" && ρσ_equals(atom.pos.y, 0))) {
+                    "59";
+                    (await self.make_spring(ρσ_getitem(self.atoms, atom.index["-"](1["*"](N["+"](2)))), atom, false));
+                    "60";
+                    (await self.make_spring(atom, ρσ_getitem(self.atoms, atom.index["+"](N["+"](2))), true));
+                    "61";
+                } else if (ρσ_equals(atom.pos.y, N["-"](1["*"](1)))) {
+                    "62";
+                    (await self.make_spring(atom, ρσ_getitem(self.atoms, atom.index["+"](N["+"](2))), false));
+                    "63";
+                } else {
+                    "64";
+                    (await self.make_spring(atom, ρσ_getitem(self.atoms, atom.index["+"](N["+"](2))), true));
+                    "66";
+                }
+                if ((atom.pos.z === 0 || typeof atom.pos.z === "object" && ρσ_equals(atom.pos.z, 0))) {
+                    "67";
+                    (await self.make_spring(ρσ_getitem(self.atoms, atom.index["-"](1["*"](Math.pow((N["+"](2)), 2)))), atom, false));
+                    "68";
+                    (await self.make_spring(atom, ρσ_getitem(self.atoms, atom.index["+"](Math.pow((N["+"](2)), 2))), true));
+                    "69";
+                } else if (ρσ_equals(atom.pos.z, N["-"](1["*"](1)))) {
+                    "70";
+                    (await self.make_spring(atom, ρσ_getitem(self.atoms, atom.index["+"](Math.pow((N["+"](2)), 2))), false));
+                    "71";
+                } else {
+                    "72";
+                    (await self.make_spring(atom, ρσ_getitem(self.atoms, atom.index["+"](Math.pow((N["+"](2)), 2))), true));
+                }
+            }
+        }
+    };
+    if (!crystal.prototype.__init__.__argnames__) Object.defineProperties(crystal.prototype.__init__, {
+        __argnames__ : {value: ["N", "atom_radius", "spacing", "momentumRange"]},
+        __module__ : {value: null}
+    });
+    crystal.__argnames__ = crystal.prototype.__init__.__argnames__;
+    crystal.__handles_kwarg_interpolation__ = crystal.prototype.__init__.__handles_kwarg_interpolation__;
+    crystal.prototype.make_spring = async function make_spring(start, end, visible) {
+        var self = this;
+        var ρσ_ls, spring;
+        "77";
+        spring = helix();
+        "78";
+        spring.pos = start.pos;
+        "79";
+        spring.axis = end.pos["-"](1["*"](start.pos));
+        "80";
+        spring.visible = visible;
+        "81";
+        spring.thickness = .05;
+        "82";
+        spring.radius = .5["*"](atom_radius);
+        "83";
+        spring.length = spacing;
+        "84";
+        spring.start = start;
+        "85";
+        spring.end = end;
+        "86";
+        spring.color = color.orange;
+        "87";
+        self.springs.append(spring);
+    };
+    if (!crystal.prototype.make_spring.__argnames__) Object.defineProperties(crystal.prototype.make_spring, {
+        __argnames__ : {value: ["start", "end", "visible"]},
+        __module__ : {value: null}
+    });
+    crystal.prototype.__repr__ = async function __repr__() {
+                return "<"["+"](__name__)["+"](".")["+"](this.constructor.name)["+"](" #")["+"](this.ρσ_object_id)["+"](">");
+    };
+    crystal.prototype.__str__ = async function __str__() {
+        return this.__repr__();
+    };
+    Object.defineProperty(crystal.prototype, "__bases__", {value: []});
+    
+    
+
+    "89";
+    _GS_1 = new crystal;
+    (await _GS_1.__init__(N, atom_radius, spacing, .1["*"](spacing)["*"](sqrt(k["/"](m)))));
+    c = _GS_1;
+    "91";
+    while (true) {
+        "92";
+        (await rate(60));
+        "93";
+        var ρσ_Iter5 = c.atoms;
+        ρσ_Iter5 = ((typeof ρσ_Iter5[Symbol.iterator] === "function") ? (ρσ_Iter5 instanceof Map ? ρσ_Iter5.keys() : ρσ_Iter5) : Object.keys(ρσ_Iter5));
+        for (var ρσ_Index5 of ρσ_Iter5) {
+            atom = ρσ_Index5;
+            "94";
+            if (atom.visible) {
+                "95";
+                atom.pos = atom.pos["+"](atom.momentum["/"](m)["*"](dt));
+            }
+        }
+        "96";
+        var ρσ_Iter6 = c.springs;
+        ρσ_Iter6 = ((typeof ρσ_Iter6[Symbol.iterator] === "function") ? (ρσ_Iter6 instanceof Map ? ρσ_Iter6.keys() : ρσ_Iter6) : Object.keys(ρσ_Iter6));
+        for (var ρσ_Index6 of ρσ_Iter6) {
+            spring = ρσ_Index6;
+            "97";
+            spring.axis = spring.end.pos["-"](1["*"](spring.start.pos));
+            "98";
+            L = mag(spring.axis);
+            "99";
+            spring.axis = spring.axis.norm();
+            "100";
+            spring.pos = spring.start.pos["+"](.5["*"](atom_radius)["*"](spring.axis));
+            "101";
+            Ls = L["-"](1["*"](atom_radius));
+            "102";
+            spring.length = Ls;
+            "103";
+            Fdt = spring.axis["*"](k)["*"](dt)["*"](1["-"](1["*"](spacing)["/"](L)));
+            "104";
+            if (spring.start.visible) {
+                "105";
+                spring.start.momentum = spring.start.momentum["+"](Fdt);
+                "106";
+            }
+            if (spring.end.visible) {
+                "107";
+                spring.end.momentum = spring.end.momentum["-"](1["*"](Fdt));
+            }
+        }
+    }
+};
+if (!__main__.__module__) Object.defineProperties(__main__, {
+    __module__ : {value: null}
+});
+
+;$(function(){ window.__context = { glowscript_container: $("#glowscript").removeAttr("id") }; __main__() })})()
+// END JAVASCRIPT
+
+//--><!]]></script>
+</div>

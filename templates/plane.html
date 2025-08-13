@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Physicsium - Miller Plane Drawer</title>
+  <link rel="stylesheet" href="https://www.glowscript.org/css/redmond/2.1/jquery-ui.custom.css" />
+  <link rel="stylesheet" href="https://www.glowscript.org/css/ide.css" />
+  <script src="https://www.glowscript.org/lib/jquery/2.1/jquery.min.js"></script>
+  <script src="https://www.glowscript.org/lib/jquery/2.1/jquery-ui.custom.min.js"></script>
+  <script src="https://www.glowscript.org/package/glow.3.2.min.js"></script>
+  <style>
+    body {
+      margin: 10px;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: white;
+      color: #333;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      user-select: none;
+    }
+    h1 {
+      margin-bottom: 0.3rem;
+    }
+    form {
+      margin-bottom: 15px;
+    }
+    label {
+      margin-right: 10px;
+      font-weight: 600;
+    }
+    input[type=number] {
+      width: 60px;
+      margin-right: 20px;
+      font-size: 1rem;
+      padding: 4px;
+    }
+    button {
+      font-size: 1rem;
+      padding: 6px 14px;
+      cursor: pointer;
+      background-color: #5ac8fa;
+      border: none;
+      color: white;
+      border-radius: 6px;
+      transition: background-color 0.3s;
+    }
+    button:hover {
+      background-color: #379bd8;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Physicsium - Draw Miller Plane</h1>
+
+  <form id="planeForm">
+    <label for="h">h:</label>
+    <input type="number" id="h" name="h" value="1" min="0" step="1" />
+    <label for="k">k:</label>
+    <input type="number" id="k" name="k" value="1" min="0" step="1" />
+    <label for="l">l:</label>
+    <input type="number" id="l" name="l" value="1" min="0" step="1" />
+    <button type="submit">Draw Plane</button>
+  </form>
+
+  <div id="glowscript" class="glowscript" style="width: 800px; height: 600px;"></div>
+
+<script type="text/javascript">
+  (function() {
+    async function __main__() {
+      const scene = canvas({width:800, height:600, background:vec(1,1,1)});
+      scene.title = "Miller Plane Drawer";
+      scene.range = 5;
+
+      // Variables to store objects so we can clear/redraw
+      let axisObjects = [];
+      let tickObjects = [];
+      let labelObjects = [];
+      let planeShape = null;
+
+      function clearAxes() {
+        for (const obj of axisObjects) obj.visible = false;
+        for (const obj of tickObjects) obj.visible = false;
+        for (const obj of labelObjects) obj.visible = false;
+        axisObjects = [];
+        tickObjects = [];
+        labelObjects = [];
+      }
+
+      function drawAxes() {
+        clearAxes();
+
+        const r = scene.range;
+        const tickSize = 0.15;
+        const shaftWidth = 0.06;
+        const numTicks = Math.floor(r);
+
+        // Draw thick arrows for axes with positive and negative directions
+        axisObjects.push(arrow({pos: vec(-r,0,0), axis: vec(2*r,0,0), color: color.red, shaftwidth: shaftWidth}));
+        axisObjects.push(arrow({pos: vec(0,-r,0), axis: vec(0,2*r,0), color: color.green, shaftwidth: shaftWidth}));
+        axisObjects.push(arrow({pos: vec(0,0,-r), axis: vec(0,0,2*r), color: color.blue, shaftwidth: shaftWidth}));
+
+        // Axis labels at positive ends
+        labelObjects.push(label({pos: vec(r+0.4,0,0), text: "X", color: color.red, box: false, height: 24}));
+        labelObjects.push(label({pos: vec(0,r+0.4,0), text: "Y", color: color.green, box: false, height: 24}));
+        labelObjects.push(label({pos: vec(0,0,r+0.4), text: "Z", color: color.blue, box: false, height: 24}));
+
+        // Draw ticks and numeric labels on both + and - sides
+        for (let i = -numTicks; i <= numTicks; i++) {
+          if (i === 0) continue;
+
+          // X ticks and labels
+          tickObjects.push(box({pos: vec(i,0,0), size: vec(0.04, tickSize, tickSize), color: color.red}));
+          labelObjects.push(label({pos: vec(i,-0.3,0), text: i.toString(), color: color.red, box: false, height: 18}));
+
+          // Y ticks and labels
+          tickObjects.push(box({pos: vec(0,i,0), size: vec(tickSize, 0.04, tickSize), color: color.green}));
+          labelObjects.push(label({pos: vec(-0.4,i,0), text: i.toString(), color: color.green, box: false, height: 18}));
+
+          // Z ticks and labels
+          tickObjects.push(box({pos: vec(0,0,i), size: vec(tickSize, tickSize, 0.04), color: color.blue}));
+          labelObjects.push(label({pos: vec(0,-0.4,i), text: i.toString(), color: color.blue, box: false, height: 18}));
+        }
+      }
+
+      function clearPlane() {
+        if (planeShape) {
+          planeShape.visible = false;
+          planeShape = null;
+        }
+      }
+
+      function drawPlane(h, k, l) {
+        clearPlane();
+
+        if (h === 0 && k === 0 && l === 0) {
+          alert("At least one of h, k, l must be non-zero");
+          return;
+        }
+
+        // We use Miller indices plane equation: hx + ky + lz = 1
+        // To draw the plane as a triangle for simplicity using intercepts
+
+        const big = 10;
+        const ix = (h !== 0) ? 1 / h : big;
+        const iy = (k !== 0) ? 1 / k : big;
+        const iz = (l !== 0) ? 1 / l : big;
+
+        // Three points on the plane intercepts
+        const v0 = vec(ix, 0, 0);
+        const v1 = vec(0, iy, 0);
+        const v2 = vec(0, 0, iz);
+
+        planeShape = triangle({
+          v0: vertex({pos: v0, color: color.orange, opacity: 0.85}),
+          v1: vertex({pos: v1, color: color.orange, opacity: 0.85}),
+          v2: vertex({pos: v2, color: color.orange, opacity: 0.85}),
+        });
+      }
+
+      drawAxes();
+
+      // Hook up form submission to draw plane
+      $("#planeForm").on("submit", e => {
+        e.preventDefault();
+        const h = parseInt($("#h").val(), 10);
+        const k = parseInt($("#k").val(), 10);
+        const l = parseInt($("#l").val(), 10);
+        drawPlane(h, k, l);
+      });
+    }
+
+    // Initialize GlowScript when page ready
+    $(function() {
+      window.__context = { glowscript_container: $("#glowscript").removeAttr("id") };
+      __main__();
+    });
+  })();
+</script>
+
+</body>
+</html>

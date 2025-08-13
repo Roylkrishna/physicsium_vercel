@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Physicsium - Crystal Structures</title>
+  <style>
+    body {
+      background: linear-gradient(135deg, #1e3c72, #2a5298);
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      color: white;
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem;
+      margin: 0;
+    }
+    h1 {
+      font-size: 3rem;
+      margin-bottom: 1rem;
+      font-weight: 900;
+      text-shadow: 0 0 10px rgba(255,255,255,0.5);
+    }
+    p {
+      margin-bottom: 3rem;
+      font-size: 1.2rem;
+      color: #cce0ffcc;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit,minmax(200px,1fr));
+      gap: 1.5rem;
+      width: 100%;
+      max-width: 900px;
+    }
+    button.crystal-btn {
+      background: rgba(255,255,255,0.1);
+      border: 2px solid #5ac8fa;
+      border-radius: 12px;
+      padding: 1.2rem 1rem;
+      font-size: 1.1rem;
+      font-weight: 600;
+      cursor: pointer;
+      color: white;
+      box-shadow: 0 0 10px rgba(90, 200, 250, 0.5);
+      transition: background-color 0.3s, color 0.3s, transform 0.2s;
+      user-select: none;
+    }
+    button.crystal-btn:hover,
+    button.crystal-btn:focus {
+      background-color: #5ac8fa;
+      color: #1e3c72;
+      transform: scale(1.05);
+      outline: none;
+    }
+    footer {
+      margin-top: 4rem;
+      font-size: 0.9rem;
+      color: #cce0ffaa;
+      user-select: none;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Physicsium</h1>
+  <p>Choose a crystal system to explore and create</p>
+
+  <div class="grid">
+    <button class="crystal-btn" data-crystal="cubic">Cubic</button>
+    <button class="crystal-btn" data-crystal="tetragonal">Tetragonal</button>
+    <button class="crystal-btn" data-crystal="hexagonal">Hexagonal</button>
+    <button class="crystal-btn" data-crystal="orthorhombic">Orthorhombic</button>
+    <button class="crystal-btn" data-crystal="monoclinic">Monoclinic</button>
+    <button class="crystal-btn" data-crystal="triclinic">Triclinic</button>
+    <button class="crystal-btn" data-crystal="trigonal">Trigonal (Rhombohedral)</button>
+  </div>
+
+  <footer>&copy; 2025 Physicsium</footer>
+
+  <script>
+   const buttons = document.querySelectorAll('.crystal-btn');
+buttons.forEach(btn => {
+  btn.addEventListener('click', () => {
+    const type = btn.getAttribute('data-crystal');
+    if(type === 'cubic') {
+      window.location.href = '/cubic_plane';  // or 'cubic.html'
+    } else {
+      alert(`You selected crystal system: ${type}`);
+    }
+  });
+});
+
+  </script>
+
+</body>
+</html>
