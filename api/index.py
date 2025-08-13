@@ -35,5 +35,12 @@ def test1():
     #return render_template("AtomicSolid-Vpython.html")
     return render_template("test1.html")
 
+
+
+def handler(event, context):
+    from flask_lambda import FlaskLambda
+    lambda_app = FlaskLambda(app)
+    return lambda_app(event, context)
+
 if __name__ == '__main__':
     app.run(debug=True)
