@@ -19,6 +19,36 @@ def sc():
     return render_template("cubic.html")
 
 
+
+@app.route('/tetragonal')
+def tetragonal():
+    #return render_template("AtomicSolid-Vpython.html")
+    return render_template("tetragonal.html")
+
+
+
+@app.route('/hexagonal')
+def hexagonal():
+    #return render_template("AtomicSolid-Vpython.html")
+    return render_template("hexagonal.html")
+
+
+@app.route('/orthorhombic')
+def orthorhombic():
+    #return render_template("AtomicSolid-Vpython.html")
+    return render_template("orthorhombic.html")
+
+@app.route('/monoclinic')
+def monoclinic():
+    #return render_template("AtomicSolid-Vpython.html")
+    return render_template("monoclinic.html")
+
+@app.route('/triclinic')
+def triclinic():
+    #return render_template("AtomicSolid-Vpython.html")
+    return render_template("triclinic.html")
+
+
 @app.route('/plane')
 def plane():
     #return render_template("AtomicSolid-Vpython.html")

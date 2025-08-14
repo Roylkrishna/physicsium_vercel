@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Physicsium - Orthorhombic (P, C, I, F) Crystal Builder — Bonds fixed</title>
+
+<link rel="stylesheet" href="https://www.glowscript.org/css/redmond/2.1/jquery-ui.custom.css" />
+<link rel="stylesheet" href="https://www.glowscript.org/css/ide.css" />
+
+<script src="https://www.glowscript.org/lib/jquery/2.1/jquery.min.js"></script>
+<script src="https://www.glowscript.org/lib/jquery/2.1/jquery-ui.custom.min.js"></script>
+<script src="https://www.glowscript.org/package/glow.3.2.min.js"></script>
+<script src="https://www.glowscript.org/package/RSrun.3.2.min.js"></script>
+
+<style>
+body {
+  background: linear-gradient(135deg,#1e3c72,#2a5298);
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  color: white;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 20px;
+  margin: 0;
+}
+h1 { font-size: 1.8rem; margin-bottom: 12px; text-align:center; }
+form { background: rgba(255,255,255,0.04); padding:14px; border-radius:10px; width:100%; max-width:720px; }
+label, select, input { display:block; margin:8px 0 6px 0; color:#d7f0ff; font-size:0.98rem; }
+select, input[type=number], input[type=text] { width:100%; padding:8px 10px; border-radius:6px; border:none; background: rgba(255,255,255,0.06); color:#001; }
+button { margin-right:8px; margin-top:10px; padding:8px 12px; border-radius:8px; border:2px solid #6fd3ff; background: rgba(255,255,255,0.03); color:#eaf6ff; cursor:pointer; font-weight:600; }
+#glowscript { width:100%; max-width:1100px; height:680px; border-radius:10px; margin-top:14px; border:2px solid rgba(111,211,255,0.15); box-shadow: 0 12px 40px rgba(0,0,0,0.5); }
+.plane-error { color:#ff9b9b; font-weight:700; display:none; margin-top:6px;}
+footer { margin-top:12px; color:#cfeeff; opacity:0.8; }
+</style>
+</head>
+<body>
+
+<h1>Physicsium — Orthorhombic Crystal Builder (P, C, I, F)</h1>
+
+<form id="controls">
+  <label for="orthoType">Orthorhombic lattice type</label>
+  <select id="orthoType">
+    <option value="P">Primitive (P)</option>
+    <option value="C">Base-centered (C)</option>
+    <option value="I">Body-centered (I)</option>
+    <option value="F">Face-centered (F)</option>
+  </select>
+
+  <label>Unit cell lengths (a, b, c)</label>
+  <input type="number" id="aLen" value="1.0" step="0.1"/>
+  <input type="number" id="bLen" value="1.5" step="0.1"/>
+  <input type="number" id="cLen" value="2.0" step="0.1"/>
+
+  <label>Number of unit cells per direction (1–6)</label>
+  <input type="number" id="numCells" min="1" max="6" value="3" />
+
+  <hr style="border-color: rgba(111,211,255,0.12)">
+
+  <label>Miller indices (h k l)</label>
+  <input type="text" id="hIndex" placeholder="h" value="1" />
+  <input type="text" id="kIndex" placeholder="k" value="1" />
+  <input type="text" id="lIndex" placeholder="l" value="1" />
+  <div id="planeError" class="plane-error"></div>
+
+  <div>
+    <button type="button" id="createBtn">Create</button>
+    <button type="button" id="drawPlaneBtn">Draw Plane</button>
+    <button type="button" id="clearBtn">Clear</button>
+    <button type="button" id="toggleBondsBtn">Toggle Bonds</button>
+  </div>
+</form>
+
+<div id="glowscript" class="glowscript"></div>
+
+<footer>&copy; 2025 Physicsium</footer>
+
+<script type="text/javascript">
+(function(){
+  async function __main__(){
+    // initialize scene
+    const scene = canvas();
+    scene.title = "Orthorhombic (P,C,I,F) Viewer";
+    scene.background = vec(0.04,0.06,0.08);
+    scene.range = 8;
+
+    // axes
+    const axisL = 6;
+    box({pos:vec(axisL/2,0,0), size:vec(axisL,0.04,0.04), color:color.red});
+    box({pos:vec(0,axisL/2,0), size:vec(0.04,axisL,0.04), color:color.green});
+    box({pos:vec(0,0,axisL/2), size:vec(0.04,0.04,axisL), color:color.blue});
+
+    // storage
+    let atoms = [];   // {sphere,pos,type}
+    let bonds = [];   // cylinder objects
+    let planeObj = null;
+    let planeLabel = null;
+    let bondsVisible = true;
+
+    // vector helpers (consistent names)
+    function vadd(u,v){ return vec(u.x+v.x, u.y+v.y, u.z+v.z); }
+    function vsub(u,v){ return vec(u.x-v.x, u.y-v.y, u.z-v.z); }
+    function mulv(u,s){ return vec(u.x*s, u.y*s, u.z*s); }
+    function vdot(u,v){ return u.x*v.x + u.y*v.y + u.z*v.z; }
+    function vcross(u,v){ return vec(u.y*v.z - u.z*v.y, u.z*v.x - u.x*v.z, u.x*v.y - u.y*v.x); }
+    function vmag(u){ return Math.sqrt(vdot(u,u)); }
+    function vnorm(u){ const m = vmag(u); return m===0? vec(0,0,0) : mulv(u,1/m); }
+
+    function parseFraction(str){ if(typeof str!=='string') str=String(str); str=str.trim(); if(str==='') return NaN; if(str.includes('/')){ let p=str.split('/'); if(p.length===2){ let n=parseFloat(p[0]), d=parseFloat(p[1]); if(!isNaN(n)&&!isNaN(d)&&d!==0) return n/d; } return NaN; } return parseFloat(str); }
+
+    function clearAll(){
+      for(let a of atoms){ try{ a.sphere.visible=false; if(a.sphere.delete) a.sphere.delete(); }catch(e){} }
+      for(let b of bonds){ try{ b.visible=false; if(b.delete) b.delete(); }catch(e){} }
+      atoms = []; bonds = [];
+      if(planeObj){ try{ planeObj.visible=false; if(planeObj.delete) planeObj.delete(); }catch(e){} planeObj=null; }
+      if(planeLabel){ try{ planeLabel.visible=false; }catch(e){} planeLabel=null; }
+    }
+
+    // create atoms for orthorhombic types
+    function createOrthorhombic(type, numCells, a, b, c){
+      clearAll();
+      const r = Math.min(a,b,c)/4.0;
+      // build primitive lattice points first
+      for(let x=0;x<numCells;x++){
+        for(let y=0;y<numCells;y++){
+          for(let z=0;z<numCells;z++){
+            const basePos = vec(x*a, y*b, z*c);
+            atoms.push({ sphere: sphere({ pos: basePos, radius: r, color: color.orange }), pos: basePos, type: 'corner' });
+
+            // Base-centered C: add at (a/2, b/2, 0) within each cell (centers of ab faces)
+            if(type === 'C'){
+              const cPos = vadd(basePos, vec(a/2, b/2, 0));
+              // only add if within the numCells grid (avoid duplicates across cells by condition)
+              if(x < numCells && y < numCells) atoms.push({ sphere: sphere({ pos: cPos, radius: r, color: color.cyan }), pos: cPos, type: 'C-face' });
+            }
+
+            // Body-centered I: add center at (a/2,b/2,c/2) for each cell
+            if(type === 'I'){
+              const iPos = vadd(basePos, vec(a/2, b/2, c/2));
+              atoms.push({ sphere: sphere({ pos: iPos, radius: r, color: color.cyan }), pos: iPos, type: 'I-center' });
+            }
+
+            // Face-centered F: centers on three face types
+            if(type === 'F'){
+              // face ab center (z face)
+              const f1 = vadd(basePos, vec(a/2, b/2, 0));
+              // face ac center (y face)
+              const f2 = vadd(basePos, vec(a/2, 0, c/2));
+              // face bc center (x face)
+              const f3 = vadd(basePos, vec(0, b/2, c/2));
+              atoms.push({ sphere: sphere({ pos: f1, radius: r, color: color.cyan }), pos: f1, type: 'F-face' });
+              atoms.push({ sphere: sphere({ pos: f2, radius: r, color: color.cyan }), pos: f2, type: 'F-face' });
+              atoms.push({ sphere: sphere({ pos: f3, radius: r, color: color.cyan }), pos: f3, type: 'F-face' });
+            }
+          }
+        }
+      }
+
+      // remove duplicate-ish atoms that may occur at boundaries (simple tolerance-based dedup)
+      deduplicateAtoms(1e-5);
+
+      // build bonds
+      makeBonds(type, a, b, c, numCells);
+
+      // center the whole structure around origin for better view
+      centerStructure();
+    }
+
+    function deduplicateAtoms(tol){
+      const unique = [];
+      for(let entry of atoms){
+        let found=false;
+        for(let u of unique){
+          if(vmag(vsub(u.pos, entry.pos)) < tol){ found=true; break; }
+        }
+        if(!found) unique.push(entry);
+        else { try{ entry.sphere.visible=false; if(entry.sphere.delete) entry.sphere.delete(); }catch(e){} }
+      }
+      atoms = unique;
+    }
+
+    // create bonds: general nearest-neighbour cutoff + special I-center corner bonds for clarity
+    function makeBonds(type, a, b, c, numCells){
+      // clear existing bonds
+      for(let bObj of bonds){ try{ bObj.visible=false; if(bObj.delete) bObj.delete(); }catch(e){} }
+      bonds = [];
+
+      // choose a reasonable cutoff to find near neighbours: use slightly larger than min(a,b,c)
+      const minCell = Math.min(a,b,c);
+      const cutoff = 1.05 * minCell + 1e-8;
+
+      for(let i=0;i<atoms.length;i++){
+        for(let j=i+1;j<atoms.length;j++){
+          const di = vmag(vsub(atoms[i].pos, atoms[j].pos));
+          if(di > 1e-9 && di <= cutoff){
+            const cyl = cylinder({ pos: atoms[i].pos, axis: vsub(atoms[j].pos, atoms[i].pos), radius: Math.min(a,b,c)*0.06, opacity:0.95 });
+            bonds.push(cyl);
+          }
+        }
+      }
+
+      // For body-centered (I) also explicitly connect each cell center to its 8 corners (so the I cell looks connected)
+      if(type === 'I'){
+        const tol = 1e-6;
+        for(let x=0;x<numCells;x++){
+          for(let y=0;y<numCells;y++){
+            for(let z=0;z<numCells;z++){
+              const cellOrigin = vec(x*a, y*b, z*c);
+              const centerPos = vadd(cellOrigin, vec(a/2, b/2, c/2));
+              // find the center atom (there will be one)
+              const centerAtom = atoms.find(u => vmag(vsub(u.pos, centerPos)) < tol);
+              if(!centerAtom) continue;
+              // connect to the eight corners of that unit cell
+              const cornerOffsets = [
+                vec(0,0,0), vec(a,0,0), vec(0,b,0), vec(0,0,c),
+                vec(a,b,0), vec(a,0,c), vec(0,b,c), vec(a,b,c)
+              ];
+              for(let off of cornerOffsets){
+                const cornerPos = vadd(cellOrigin, off);
+                const cornerAtom = atoms.find(u => vmag(vsub(u.pos, cornerPos)) < tol);
+                if(cornerAtom){
+                  const d = vmag(vsub(centerAtom.pos, cornerAtom.pos));
+                  if(d>1e-9){
+                    const cyl = cylinder({ pos: centerAtom.pos, axis: vsub(cornerAtom.pos, centerAtom.pos), radius: Math.min(a,b,c)*0.06, opacity:0.95 });
+                    bonds.push(cyl);
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+
+      // set bond visibility
+      for(let bObj of bonds) bObj.visible = bondsVisible;
+    }
+
+    function toggleBonds(){ bondsVisible = !bondsVisible; for(let bObj of bonds) bObj.visible = bondsVisible; }
+
+    // center structure around origin
+    function centerStructure(){
+      if(atoms.length===0) return;
+      let minx=1e9,miny=1e9,minz=1e9,maxx=-1e9,maxy=-1e9,maxz=-1e9;
+      for(let a of atoms){ const p=a.pos; if(p.x<minx)minx=p.x; if(p.y<miny)miny=p.y; if(p.z<minz)minz=p.z; if(p.x>maxx)maxx=p.x; if(p.y>maxy)maxy=p.y; if(p.z>maxz)maxz=p.z; }
+      const center = mulv(vec((minx+maxx)/2,(miny+maxy)/2,(minz+maxz)/2), 1);
+      // translate all atoms and bonds
+      for(let a of atoms){ a.sphere.pos = vsub(a.sphere.pos, center); a.pos = vsub(a.pos, center); }
+      for(let bObj of bonds){ bObj.pos = vsub(bObj.pos, center); }
+      if(planeObj){ try{ planeObj.visible=false; if(planeObj.delete) planeObj.delete(); }catch(e){} planeObj=null; }
+      if(planeLabel){ try{ planeLabel.visible=false; }catch(e){} planeLabel=null; }
+    }
+
+    // draw plane passing through lattice according to Miller (h,k,l)
+    function drawPlane(h,k,l){
+    if(isNaN(h)||isNaN(k)||isNaN(l)){ $('#planeError').text('Invalid Miller indices').show(); return; }
+    if(h===0 && k===0 && l===0){ $('#planeError').text('Indices cannot all be zero').show(); return; }
+    if(atoms.length===0){ $('#planeError').text('Create crystal first').show(); return; }
+    $('#planeError').hide();
+
+    const a = parseFloat($('#aLen').val());
+    const b = parseFloat($('#bLen').val());
+    const c = parseFloat($('#cLen').val());
+    const numCells = parseInt($('#numCells').val());
+
+    // plane normal in Cartesian coordinates
+    let N = vec(h/a, k/b, l/c);
+    N = vnorm(N);
+
+    // plane passes through the crystal center
+    const r0 = vec((numCells-1)/2*a, (numCells-1)/2*b, (numCells-1)/2*c);
+
+    // create orthonormal in-plane vectors
+    const arbitrary = (Math.abs(N.x) < 0.9) ? vec(1,0,0) : vec(0,1,0);
+    let u = vcross(arbitrary, N); u = vnorm(u);
+    let v = vcross(N, u); v = vnorm(v);
+
+    const size = Math.max(numCells*2, 6);
+    const p0 = vadd(r0, vadd(mulv(u, size), mulv(v, size)));
+    const p1 = vadd(r0, vadd(mulv(u, -size), mulv(v, size)));
+    const p2 = vadd(r0, vadd(mulv(u, -size), mulv(v, -size)));
+    const p3 = vadd(r0, vadd(mulv(u, size), mulv(v, -size)));
+
+    if(planeObj){ try{ planeObj.visible=false; if(planeObj.delete) planeObj.delete(); }catch(e){} planeObj=null; }
+    planeObj = quad({
+        v0: vertex({ pos: p0, color: color.yellow, opacity: 0.45 }),
+        v1: vertex({ pos: p1, color: color.yellow, opacity: 0.45 }),
+        v2: vertex({ pos: p2, color: color.yellow, opacity: 0.45 }),
+        v3: vertex({ pos: p3, color: color.yellow, opacity: 0.45 })
+    });
+
+    if(planeLabel){ try{ planeLabel.visible=false; }catch(e){} planeLabel=null; }
+    planeLabel = label({ pos: r0, text:`(${h},${k},${l})`, color: color.yellow, box:false, opacity:1.0, xoffset:14, yoffset:-12 });
+}
+
+
+
+    // UI bindings
+    $('#createBtn').on('click', ()=>{
+      const type = $('#orthoType').val();
+      const num = parseInt($('#numCells').val());
+      const a = parseFloat($('#aLen').val());
+      const b = parseFloat($('#bLen').val());
+      const c = parseFloat($('#cLen').val());
+      if(isNaN(num) || num < 1 || num > 12){ alert('Enter valid number of cells (1–12)'); return; }
+      if(isNaN(a) || isNaN(b) || isNaN(c) || a<=0 || b<=0 || c<=0){ alert('Enter valid a,b,c > 0'); return; }
+      createOrthorhombic(type, num, a, b, c);
+      $('#planeError').hide();
+    });
+
+    $('#drawPlaneBtn').on('click', ()=>{
+      const h = parseFraction($('#hIndex').val());
+      const k = parseFraction($('#kIndex').val());
+      const l = parseFraction($('#lIndex').val());
+      if([h,k,l].some(v=>isNaN(v))){ $('#planeError').text('Invalid Miller indices').show(); return; }
+      if(h===0 && k===0 && l===0){ $('#planeError').text('Indices cannot all be zero').show(); return; }
+      drawPlane(h,k,l);
+    });
+
+    $('#clearBtn').on('click', ()=>{
+      clearAll();
+    });
+
+    $('#toggleBondsBtn').on('click', ()=>{
+      toggleBonds();
+    });
+
+    // initial creation
+    createOrthorhombic('P', parseInt($('#numCells').val()), parseFloat($('#aLen').val()), parseFloat($('#bLen').val()), parseFloat($('#cLen').val()));
+  }
+
+  // launch
+  $(function(){ window.__context = { glowscript_container: $("#glowscript").removeAttr("id") }; __main__(); });
+})();
+</script>
+
+</body>
+</html>
