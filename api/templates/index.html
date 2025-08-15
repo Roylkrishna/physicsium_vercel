@@ -81,19 +81,39 @@
   <footer>&copy; 2025 Physicsium</footer>
 
   <script>
-   const buttons = document.querySelectorAll('.crystal-btn');
-buttons.forEach(btn => {
-  btn.addEventListener('click', () => {
-    const type = btn.getAttribute('data-crystal');
-    if(type === 'cubic') {
-      window.location.href = '/cubic_plane';  // or 'cubic.html'
-    } else {
-      alert(`You selected crystal system: ${type}`);
-    }
+  const buttons = document.querySelectorAll('.crystal-btn');
+  buttons.forEach(btn => {
+    btn.addEventListener('click', () => {
+      const type = btn.getAttribute('data-crystal');
+      switch (type) {
+        case 'cubic':
+          window.location.href = '/cubic_plane';  // cubic.html or cubic_plane.html
+          break;
+        case 'tetragonal':
+          window.location.href = '/tetragonal';
+          break;
+        case 'hexagonal':
+          window.location.href = '/hexagonal';
+          break;
+        case 'orthorhombic':
+          window.location.href = '/orthorhombic';
+          break;
+        case 'monoclinic':
+          window.location.href = '/monoclinic';
+          break;
+        case 'triclinic':
+          window.location.href = '/triclinic';
+          break;
+        case 'trigonal':
+          window.location.href = '/trigonal';
+          break;
+        default:
+          alert(`Unknown crystal system: ${type}`);
+      }
+    });
   });
-});
+</script>
 
-  </script>
 
 </body>
 </html>

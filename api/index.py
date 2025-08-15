@@ -48,6 +48,11 @@ def triclinic():
     #return render_template("AtomicSolid-Vpython.html")
     return render_template("triclinic.html")
 
+@app.route('/trigonal') 
+def trigonal():
+    #return render_template("AtomicSolid-Vpython.html")
+    return render_template("trigonal.html")
+
 
 @app.route('/plane')
 def plane():

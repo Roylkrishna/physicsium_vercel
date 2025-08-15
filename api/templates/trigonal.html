@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Physicsium - Monoclinic Crystal Builder</title>
+
+<link rel="stylesheet" href="https://www.glowscript.org/css/redmond/2.1/jquery-ui.custom.css" />
+<link rel="stylesheet" href="https://www.glowscript.org/css/ide.css" />
+
+<script src="https://www.glowscript.org/lib/jquery/2.1/jquery.min.js"></script>
+<script src="https://www.glowscript.org/lib/jquery/2.1/jquery-ui.custom.min.js"></script>
+<script src="https://www.glowscript.org/package/glow.3.2.min.js"></script>
+<script src="https://www.glowscript.org/package/RSrun.3.2.min.js"></script>
+
+<style>
+body { background: linear-gradient(135deg,#0f2746,#214b6b); font-family:'Segoe UI',sans-serif; color:#eaf6ff; display:flex; flex-direction:column; align-items:center; padding:20px; margin:0; }
+h1 { font-size:1.8rem; margin-bottom:12px; text-align:center; }
+form { background:rgba(255,255,255,0.04); padding:14px; border-radius:10px; width:100%; max-width:640px; box-shadow:0 6px 18px rgba(0,0,0,0.4);}
+label,input{display:block; margin:8px 0 6px 0; color:#d7f0ff; font-size:0.98rem;}
+input{width:100%; padding:8px 10px; border-radius:6px; border:none; background: rgba(255,255,255,0.06); color:#001;}
+button{margin-right:8px;margin-top:10px;padding:8px 12px;border-radius:8px;border:2px solid #6fd3ff;background: rgba(255,255,255,0.03); color:#eaf6ff; cursor:pointer;font-weight:600;}
+#glowscript{width:100%; max-width:1100px; height:640px; border-radius:10px; margin-top:14px; border:2px solid rgba(111,211,255,0.15); box-shadow:0 12px 40px rgba(0,0,0,0.5);}
+.plane-error{color:#ff9b9b;font-weight:700;display:none;margin-top:6px;}
+footer{margin-top:12px;color:#cfeeff;opacity:0.8;}
+</style>
+</head>
+<body>
+
+<h1>Physicsium — Monoclinic Crystal Builder</h1>
+
+<form id="controls">
+<label>Number of unit cells per side (1–6)</label>
+<input type="number" id="numCells" min="1" max="6" value="3" />
+
+<label>Lattice parameter a</label>
+<input type="number" id="aVal" min="0.1" step="0.01" value="1.0" />
+
+<label>Lattice parameter b</label>
+<input type="number" id="bVal" min="0.1" step="0.01" value="1.0" />
+
+<label>Lattice parameter c</label>
+<input type="number" id="cVal" min="0.1" step="0.01" value="1.5" />
+
+<label>Angle γ (°) (α=β=90°)</label>
+<input type="number" id="gamma" min="10" max="170" step="0.1" value="105" />
+
+<hr style="border-color: rgba(111,211,255,0.12)" />
+
+<label>Plane Miller indices (h k l)</label>
+<input type="text" id="hIndex" placeholder="h" value="1" />
+<input type="text" id="kIndex" placeholder="k" value="0" />
+<input type="text" id="lIndex" placeholder="l" value="0" />
+<div id="planeError" class="plane-error"></div>
+
+<div>
+<button type="button" id="createBtn">Create Crystal</button>
+<button type="button" id="drawPlaneBtn">Draw Plane</button>
+<button type="button" id="clearBtn">Clear</button>
+<button type="button" id="toggleBondsBtn">Toggle Bonds</button>
+</div>
+</form>
+
+<div id="glowscript" class="glowscript"></div>
+
+<footer>&copy; 2025 Physicsium</footer>
+
+<script type="text/javascript">
+(function(){
+async function __main__(){
+  let scene=canvas();
+  scene.title="Monoclinic Viewer";
+  scene.background=vec(0.04,0.06,0.08);
+  scene.range=8;
+
+  // axes
+  const axisL=6;
+  box({pos:vec(axisL/2,0,0),size:vec(axisL,0.04,0.04),color:color.red});
+  box({pos:vec(0,axisL/2,0),size:vec(0.04,axisL,0.04),color:color.green});
+  box({pos:vec(0,0,axisL/2),size:vec(0.04,0.04,axisL),color:color.blue});
+  label({pos:vec(axisL,0,0),text:"x",color:color.red,box:false});
+  label({pos:vec(0,axisL,0),text:"y",color:color.green,box:false});
+  label({pos:vec(0,0,axisL),text:"z",color:color.blue,box:false});
+
+  let atoms=[], bonds=[], planeObj=null, planeLabel=null, bondsVisible=true;
+
+  function clearAll(){
+    for(let a of atoms){try{a.sphere.visible=false;if(a.sphere.delete)a.sphere.delete();}catch(e){}}
+    for(let b of bonds){try{b.visible=false;if(b.delete)b.delete();}catch(e){}}
+    atoms=[]; bonds=[];
+    if(planeObj){try{planeObj.visible=false;if(planeObj.delete)planeObj.delete();}catch(e){} planeObj=null;}
+    if(planeLabel){try{planeLabel.visible=false;}catch(e){} planeLabel=null;}
+  }
+
+  function parseFraction(str){
+    if(typeof str!=='string') str=String(str);
+    str=str.trim();
+    if(str==='') return NaN;
+    if(str.includes('/')){ const p=str.split('/'); if(p.length===2){ const n=parseFloat(p[0]), d=parseFloat(p[1]); if(!isNaN(n)&&!isNaN(d)&&d!==0)return n/d; return NaN;} return NaN;}
+    return parseFloat(str);
+  }
+
+  function deg2rad(d){return d*Math.PI/180;}
+
+  // Monoclinic lattice vectors (α=β=90°, γ!=90)
+  function monoclinicVectors(a,b,c,gammaDeg){
+    const gamma=deg2rad(gammaDeg);
+    const a1=vec(a,0,0);
+    const a2=vec(b*Math.cos(gamma), b*Math.sin(gamma),0);
+    const a3=vec(0,0,c);
+    return [a1,a2,a3];
+  }
+
+  function addAtom(pos,type){
+    const r=0.25, col=color.orange;
+    const s=sphere({pos:pos,radius:r,color:col,shininess:0.6});
+    atoms.push({sphere:s,pos:pos,type:type});
+  }
+
+  function createMonoclinic(numCells,a,b,c,gamma){
+    clearAll();
+    const [a1,a2,a3]=monoclinicVectors(a,b,c,gamma);
+    for(let i=0;i<numCells;i++)
+      for(let j=0;j<numCells;j++)
+        for(let k=0;k<numCells;k++){
+          const R=vadd(vadd(mulv(a1,i),mulv(a2,j)),mulv(a3,k));
+          addAtom(R,'base');
+        }
+    makeBonds(a,b,c);
+    centerScene();
+  }
+
+  // vector helpers
+  function vadd(u,v){return vec(u.x+v.x,u.y+v.y,u.z+v.z);}
+  function vsub(u,v){return vec(u.x-v.x,u.y-v.y,u.z-v.z);}
+  function mulv(u,s){return vec(u.x*s,u.y*s,u.z*s);}
+  function vdot(u,v){return u.x*v.x+u.y*v.y+u.z*v.z;}
+  function vmag(u){return Math.sqrt(vdot(u,u));}
+  function vnorm(u){const m=vmag(u); return m===0?vec(0,0,0):mulv(u,1/m);}
+  function vcross(u,v){return vec(u.y*v.z-u.z*v.y,u.z*v.x-u.x*v.z,u.x*v.y-u.y*v.x);}
+
+  // Only nearest neighbors along axes
+  function makeBonds(a,b,c){
+    const cutoffs=[a*1.05,b*1.05,c*1.05];
+    for(let i=0;i<atoms.length;i++){
+      for(let j=i+1;j<atoms.length;j++){
+        const dvec=vsub(atoms[i].pos,atoms[j].pos);
+        // check if only along one axis
+        if( (Math.abs(dvec.x)<cutoffs[0] && Math.abs(dvec.y)<0.001 && Math.abs(dvec.z)<0.001) ||
+            (Math.abs(dvec.x)<0.001 && Math.abs(dvec.y)<cutoffs[1] && Math.abs(dvec.z)<0.001) ||
+            (Math.abs(dvec.x)<0.001 && Math.abs(dvec.y)<0.001 && Math.abs(dvec.z)<cutoffs[2]) ){
+          const cyl=cylinder({pos:atoms[j].pos, axis:dvec, radius:0.045, opacity:0.9});
+          bonds.push(cyl);
+        }
+      }
+    }
+    for(let b of bonds) b.visible=bondsVisible;
+  }
+
+  function toggleBonds(){bondsVisible=!bondsVisible; for(let b of bonds)b.visible=bondsVisible;}
+
+  function centerScene(){
+    if(atoms.length===0) return;
+    let minx=1e9,miny=1e9,minz=1e9,maxx=-1e9,maxy=-1e9,maxz=-1e9;
+    for(let a of atoms){const p=a.pos; if(p.x<minx)minx=p.x;if(p.y<miny)miny=p.y;if(p.z<minz)minz=p.z;if(p.x>maxx)maxx=p.x;if(p.y>maxy)maxy=p.y;if(p.z>maxz)maxz=p.z;}
+    const center=vec((minx+maxx)/2,(miny+maxy)/2,(minz+maxz)/2);
+    const shift=mulv(center,-1);
+    for(let a of atoms){a.sphere.pos=vadd(a.sphere.pos,shift); a.pos=vadd(a.pos,shift);}
+    for(let b of bonds){b.pos=vadd(b.pos,shift);}
+    if(planeObj){try{planeObj.visible=false;if(planeObj.delete)planeObj.delete();}catch(e){} planeObj=null;}
+    if(planeLabel){try{planeLabel.visible=false;}catch(e){} planeLabel=null;}
+  }
+
+  function drawPlane(h,k,l){
+    if(isNaN(h)||isNaN(k)||isNaN(l)){ $('#planeError').text('Invalid Miller indices').show(); return; }
+    if(atoms.length===0){ $('#planeError').text('Create crystal first').show(); return; }
+    $('#planeError').hide();
+    const a=parseFloat($('#aVal').val()), b=parseFloat($('#bVal').val()), c=parseFloat($('#cVal').val()), gamma=parseFloat($('#gamma').val());
+    const [a1,a2,a3]=monoclinicVectors(a,b,c,gamma);
+
+    const V=vdot(a1, vcross(a2,a3));
+    const b1=mulv(vcross(a2,a3),1/V), b2=mulv(vcross(a3,a1),1/V), b3=mulv(vcross(a1,a2),1/V);
+    let N=vadd(vadd(mulv(b1,h),mulv(b2,k)),mulv(b3,l));
+    if(vmag(N)===0){$('#planeError').text('Normal is zero').show(); return;}
+    let r0=mulv(vadd(vadd(mulv(a1,h),mulv(a2,k)),mulv(a3,l)),0.5);
+
+    let nUnit=vnorm(N);
+    let arbitrary=Math.abs(nUnit.x)<0.9?vec(1,0,0):vec(0,1,0);
+    let u=vnorm(vcross(arbitrary,nUnit)), v=vnorm(vcross(nUnit,u));
+    const size=Math.max(parseInt($('#numCells').val())*1.6,6);
+    const p0=vadd(r0,vadd(mulv(u,size),mulv(v,size)));
+    const p1=vadd(r0,vadd(mulv(u,-size),mulv(v,size)));
+    const p2=vadd(r0,vadd(mulv(u,-size),mulv(v,-size)));
+    const p3=vadd(r0,vadd(mulv(u,size),mulv(v,-size)));
+
+    if(planeObj){try{planeObj.visible=false;if(planeObj.delete)planeObj.delete();}catch(e){} planeObj=null;}
+    planeObj=quad({v0:vertex({pos:p0,color:color.yellow,opacity:0.45}),
+                   v1:vertex({pos:p1,color:color.yellow,opacity:0.45}),
+                   v2:vertex({pos:p2,color:color.yellow,opacity:0.45}),
+                   v3:vertex({pos:p3,color:color.yellow,opacity:0.45})});
+    if(planeLabel){try{planeLabel.visible=false;}catch(e){} planeLabel=null;}
+    planeLabel=label({pos:r0,text:`(${h},${k},${l})`,color:color.yellow,box:false,opacity:1.0,xoffset:14,yoffset:-12});
+  }
+
+  // UI
+  $('#createBtn').click(()=>{
+    const num=parseInt($('#numCells').val());
+    const a=parseFloat($('#aVal').val()), b=parseFloat($('#bVal').val()), c=parseFloat($('#cVal').val()), gamma=parseFloat($('#gamma').val());
+    if(isNaN(num)||num<1||num>12){alert('1–12 cells');return;}
+    createMonoclinic(num,a,b,c,gamma);
+    $('#planeError').hide();
+  });
+
+  $('#drawPlaneBtn').click(()=>{
+    const h=parseFraction($('#hIndex').val()), k=parseFraction($('#kIndex').val()), l=parseFraction($('#lIndex').val());
+    if([h,k,l].some(v=>isNaN(v))){$('#planeError').text('Invalid Miller indices').show();return;}
+    if(h===0&&k===0&&l===0){$('#planeError').text('Indices cannot all be zero').show();return;}
+    $('#planeError').hide(); drawPlane(h,k,l);
+  });
+
+  $('#clearBtn').click(()=>clearAll());
+  $('#toggleBondsBtn').click(()=>toggleBonds());
+
+  createMonoclinic(parseInt($('#numCells').val()),parseFloat($('#aVal').val()),parseFloat($('#bVal').val()),parseFloat($('#cVal').val()),parseFloat($('#gamma').val()));
+}
+
+$(function(){ window.__context={glowscript_container:$("#glowscript").removeAttr("id")}; __main__(); });
+})();
+</script>
+
+</body>
+</html>
