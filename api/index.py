@@ -76,5 +76,11 @@ def cubic_test():
     return render_template("cubic_test.html")
 
 
+@app.route('/draw_with_parameters')
+def plotly():
+    #return render_template("AtomicSolid-Vpython.html")
+    return render_template("plotly.html")
+
+
 if __name__ == '__main__':
     app.run(debug=True)

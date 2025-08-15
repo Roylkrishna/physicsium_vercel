@@ -1,0 +1,665 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Crystal Structure with Plane — Physicsium</title>
+  <script src="https://cdn.plot.ly/plotly-2.26.1.min.js"></script>
+
+  <style>
+    /* Main page gradient & typefeel (copied from main) */
+    :root{
+      --accent:#5ac8fa;
+      --bg-1:#1e3c72;
+      --bg-2:#2a5298;
+      --panel: rgba(255,255,255,0.06);
+      --muted: rgba(255,255,255,0.75);
+      --card-border: rgba(255,255,255,0.08);
+      --glass: rgba(255,255,255,0.04);
+      --gap: 12px;
+      --pad: 14px;
+    }
+
+    html,body{
+      height:100vh; height:100dvh;
+      margin:0; padding:0;
+      font-family: 'Segoe UI', Roboto, system-ui, -apple-system, Arial, sans-serif;
+      background: linear-gradient(135deg, var(--bg-1), var(--bg-2));
+      color: #fff;
+      -webkit-font-smoothing:antialiased;
+      -moz-osx-font-smoothing:grayscale;
+    }
+
+    /* top header to match main page */
+    header.app-header{
+      width:100%;
+      max-width:1200px;
+      margin: 28px auto 8px;
+      padding: 0 20px;
+      box-sizing:border-box;
+      display:flex;
+      align-items:center;
+      gap:16px;
+    }
+    header h1{
+      font-size:28px;
+      margin:0;
+      font-weight:800;
+      letter-spacing: -0.02em;
+      text-shadow: 0 4px 18px rgba(0,0,0,0.25);
+    }
+    header p.hint {
+      margin:0;
+      color: rgba(255,255,255,0.85);
+      font-weight:500;
+      font-size:14px;
+    }
+
+    /* app container */
+    .app {
+      display:flex;
+      gap:20px;
+      width:100%;
+      max-width:1200px;
+      margin: 0 auto 28px;
+      padding: 0 20px;
+      box-sizing:border-box;
+      align-items:stretch;
+    }
+
+    /* Sidebar: glass card on left on desktop, top on mobile */
+    .sidebar {
+      width:360px;
+      min-width:300px;
+      background: var(--panel);
+      border: 1px solid var(--card-border);
+      border-radius:14px;
+      padding: var(--pad);
+      box-sizing:border-box;
+      backdrop-filter: blur(6px);
+      box-shadow: 0 6px 24px rgba(0,0,0,0.25);
+      color: var(--muted);
+      display:flex;
+      flex-direction:column;
+      gap:14px;
+    }
+
+    /* mobile: sidebar stacks on top */
+    @media (max-width: 820px){
+      .app { flex-direction: column; padding-bottom: 30px; }
+      .sidebar { width:100%; min-width:auto; }
+    }
+
+    .panel {
+      background: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01));
+      border-radius:10px;
+      padding:12px;
+      box-sizing:border-box;
+      border: 1px solid rgba(255,255,255,0.04);
+    }
+    .panel h3 {
+      margin:0 0 8px 0;
+      color: #eaf6ff;
+      font-size:15px;
+      font-weight:700;
+    }
+
+    .grid-3 { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; }
+    .grid-2 { display:grid; grid-template-columns:repeat(2,1fr); gap:10px; }
+
+    label {
+      display:block;
+      font-size:12px;
+      color: rgba(255,255,255,0.85);
+      margin-bottom:6px;
+      font-weight:600;
+    }
+
+    input[type="number"], input[type="color"], select {
+      width:100%;
+      padding:10px;
+      border-radius:10px;
+      border: none;
+      background: rgba(255,255,255,0.95);
+      color: #111;
+      font-size:14px;
+      box-sizing:border-box;
+    }
+
+    /* styled buttons to match main page buttons */
+    .btn {
+      width:100%;
+      padding:12px 14px;
+      border-radius: 12px;
+      border: 2px solid var(--accent);
+      background: rgba(255,255,255,0.06);
+      color: #fff;
+      font-weight:700;
+      cursor:pointer;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.25);
+      transition: transform .15s ease, background .15s ease, color .15s ease;
+      font-size:14px;
+    }
+    .btn:hover, .btn:focus {
+      background: var(--accent);
+      color: var(--bg-1);
+      transform: translateY(-2px);
+      outline: none;
+    }
+
+    .btn.outline {
+      background: transparent;
+      color: #eaf6ff;
+      border-color: rgba(255,255,255,0.12);
+    }
+    .btn.secondary {
+      background: rgba(255,255,255,0.06);
+      color: #fff;
+      border-color: rgba(255,255,255,0.06);
+    }
+
+    .row { display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+    .row > * { flex:1; min-width:80px; }
+
+    .actions {
+      margin-top:auto;
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:10px;
+    }
+
+    /* Plot area */
+    .plot-wrap {
+      flex:1;
+      border-radius:14px;
+      overflow:hidden;
+      background: #fff;
+      min-height:520px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.35);
+      border: 1px solid rgba(255,255,255,0.06);
+    }
+    #plot { width:100%; height:100%; min-height:520px; }
+
+    /* footer area */
+    footer.page-foot{
+      width:100%;
+      max-width:1200px;
+      margin: 12px auto 40px;
+      color: rgba(255,255,255,0.85);
+      font-size:13px;
+      text-align:center;
+    }
+
+    /* small helpers */
+    .muted { color: rgba(255,255,255,0.75); font-size:13px; }
+    .small { font-size:12px; color: rgba(255,255,255,0.7); }
+
+    /* make plotly modebar less obtrusive on small screens */
+    .modebar { transform: scale(0.95); transform-origin: top right; }
+  </style>
+</head>
+<body>
+  <header class="app-header">
+    <div>
+      <h1>Physicsium</h1>
+      <p class="hint">Crystal Structure — Unit cell & Miller plane visualizer</p>
+    </div>
+  </header>
+
+  <div class="app" role="application">
+    <aside class="sidebar" id="sidebar">
+      <div class="panel">
+        <h3>Unit cell parameters</h3>
+        <div class="grid-3">
+          <div>
+            <label for="a">a</label>
+            <input type="number" id="a" value="1" step="0.1" />
+          </div>
+          <div>
+            <label for="b">b</label>
+            <input type="number" id="b" value="1" step="0.1" />
+          </div>
+          <div>
+            <label for="c">c</label>
+            <input type="number" id="c" value="1" step="0.1" />
+          </div>
+        </div>
+
+        <div class="grid-3" style="margin-top:10px;">
+          <div>
+            <label for="alpha">α (deg)</label>
+            <input type="number" id="alpha" value="90" step="1" />
+          </div>
+          <div>
+            <label for="beta">β (deg)</label>
+            <input type="number" id="beta" value="90" step="1" />
+          </div>
+          <div>
+            <label for="gamma">γ (deg)</label>
+            <input type="number" id="gamma" value="90" step="1" />
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h3>Atoms & styles</h3>
+        <div class="grid-2">
+          <div>
+            <label for="atomRadius">Atom radius</label>
+            <input type="number" id="atomRadius" value="5" step="1" />
+          </div>
+          <div>
+            <label for="atomBorderWidth">Border width</label>
+            <input type="number" id="atomBorderWidth" value="1" step="1" />
+          </div>
+        </div>
+
+        <div class="grid-3" style="margin-top:10px;">
+          <div>
+            <label for="scColor">SC color</label>
+            <input type="color" id="scColor" value="#808080" />
+          </div>
+          <div>
+            <label for="bccColor">BCC color</label>
+            <input type="color" id="bccColor" value="#ff0000" />
+          </div>
+          <div>
+            <label for="fccColor">FCC color</label>
+            <input type="color" id="fccColor" value="#0000ff" />
+          </div>
+        </div>
+
+        <div style="margin-top:10px;">
+          <label for="atomBorderColor">Atom border</label>
+          <input type="color" id="atomBorderColor" value="#000000" />
+        </div>
+
+        <div class="row" style="margin-top:10px;">
+          <label style="display:flex;align-items:center;gap:8px;color:var(--muted);">
+            <input type="checkbox" id="toggleBCC" /> Body-centered (BCC)
+          </label>
+          <label style="display:flex;align-items:center;gap:8px;color:var(--muted);">
+            <input type="checkbox" id="toggleFCC" /> Face-centered (FCC)
+          </label>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h3>Plane (Miller indices)</h3>
+        <div class="row">
+          <div>
+            <label for="h">h</label>
+            <input type="number" id="h" value="1" step="1" />
+          </div>
+          <div>
+            <label for="k">k</label>
+            <input type="number" id="k" value="1" step="1" />
+          </div>
+          <div>
+            <label for="l">l</label>
+            <input type="number" id="l" value="1" step="1" />
+          </div>
+        </div>
+
+        <div class="row" style="margin-top:10px;">
+          <button class="btn" id="btnDrawPlane">Draw Plane</button>
+          <button class="btn outline" id="btnClearPlane">Clear Plane</button>
+        </div>
+      </div>
+
+      <div class="actions">
+        <button class="btn" id="btnDraw">Redraw Crystal</button>
+        <button class="btn secondary" id="btnReset">Reset</button>
+      </div>
+    </aside>
+
+    <main class="plot-wrap" aria-live="polite">
+      <div id="plot"></div>
+    </main>
+  </div>
+
+  <footer class="page-foot">&copy; 2025 Physicsium</footer>
+
+<script>
+  /* ---------- State ---------- */
+  let points = [], vx = [], vy = [], vz = [], lines = [];
+  let bccAtom = null, fccAtoms = [];
+  let planeActive = false; // simple flag; "Draw Plane" re-renders with plane
+
+  /* ---------- Plotly config: only download image ---------- */
+  const plotConfig = {
+    displayModeBar: true,
+    modeBarButtonsToKeep: ['toImage'],
+    displaylogo: false,
+    responsive: true,
+    toImageButtonOptions: {
+      format: 'png',
+      filename: 'crystal_visualization',
+      scale: 2   // higher = sharper image
+    }
+  };
+
+  /* ---------- Helpers ---------- */
+  function computeVectors() {
+    const a = parseFloat(document.getElementById('a').value);
+    const b = parseFloat(document.getElementById('b').value);
+    const c = parseFloat(document.getElementById('c').value);
+    const alpha = parseFloat(document.getElementById('alpha').value) * Math.PI / 180;
+    const beta  = parseFloat(document.getElementById('beta').value)  * Math.PI / 180;
+    const gamma = parseFloat(document.getElementById('gamma').value) * Math.PI / 180;
+
+    vx = [a, 0, 0];
+    vy = [b * Math.cos(gamma), b * Math.sin(gamma), 0];
+    const vz_y = (Math.cos(alpha) - Math.cos(beta) * Math.cos(gamma)) / Math.sin(gamma);
+    vz = [
+      c * Math.cos(beta),
+      c * vz_y,
+      c * Math.sqrt(1 - Math.cos(beta) ** 2 - vz_y ** 2)
+    ];
+
+    points = [
+      [0,0,0], vx, vy, vz,
+      [vx[0]+vy[0], vx[1]+vy[1], vx[2]+vy[2]],
+      [vx[0]+vz[0], vx[1]+vz[1], vx[2]+vz[2]],
+      [vy[0]+vz[0], vy[1]+vz[1], vy[2]+vz[2]],
+      [vx[0]+vy[0]+vz[0], vx[1]+vy[1]+vz[1], vx[2]+vy[2]+vz[2]]
+    ];
+
+    lines = [[0,1],[0,2],[0,3],[1,4],[1,5],[2,4],[2,6],[3,5],[3,6],[4,7],[5,7],[6,7]];
+  }
+
+  function getStyleInputs() {
+    return {
+      atomRadius: parseFloat(document.getElementById('atomRadius').value),
+      scColor: document.getElementById('scColor').value,
+      bccColor: document.getElementById('bccColor').value,
+      fccColor: document.getElementById('fccColor').value,
+      borderColor: document.getElementById('atomBorderColor').value,
+      borderWidth: parseFloat(document.getElementById('atomBorderWidth').value)
+    };
+  }
+
+  /* Toggle helpers */
+  function updateToggles() {
+    const showBCC = document.getElementById('toggleBCC').checked;
+    const showFCC = document.getElementById('toggleFCC').checked;
+
+    computeVectors();
+
+    bccAtom = showBCC ? [
+      (vx[0]+vy[0]+vz[0])/2,
+      (vx[1]+vy[1]+vz[1])/2,
+      (vx[2]+vy[2]+vz[2])/2
+    ] : null;
+
+    fccAtoms = showFCC ? [
+      // XY faces (z=0 and z=c)
+      [0.5*(vx[0]+vy[0]), 0.5*(vx[1]+vy[1]), 0],
+      [0.5*(vx[0]+vy[0]), 0.5*(vx[1]+vy[1]), vz[2]],
+      // XZ faces (y=0 and y=b)
+      [0.5*(vx[0]+vz[0]), 0, 0.5*(vx[2]+vz[2])],
+      [0.5*(vx[0]+vz[0]), vy[1], 0.5*(vx[2]+vz[2])],
+      // YZ faces (x=0 and x=a)
+      [0, 0.5*(vy[1]+vz[1]), 0.5*(vy[2]+vz[2])],
+      [vx[0], 0.5*(vy[1]+vz[1]), 0.5*(vy[2]+vz[2])]
+    ] : [];
+  }
+
+  /* ---------- Rendering ---------- */
+  function baseTraces() {
+    const { atomRadius, scColor, bccColor, fccColor, borderColor, borderWidth } = getStyleInputs();
+    const traces = [];
+
+    // SC atoms
+    traces.push({
+      x: points.map(p => p[0]),
+      y: points.map(p => p[1]),
+      z: points.map(p => p[2]),
+      type: 'scatter3d',
+      mode: 'markers',
+      marker: { size: atomRadius, color: scColor, line: { color: borderColor, width: borderWidth } },
+      showlegend: false
+    });
+
+    // BCC
+    if (bccAtom) traces.push({
+      x: [bccAtom[0]], y: [bccAtom[1]], z: [bccAtom[2]],
+      type: 'scatter3d', mode: 'markers',
+      marker: { size: atomRadius, color: bccColor, line: { color: borderColor, width: borderWidth } },
+      showlegend: false
+    });
+
+    // FCC
+    if (fccAtoms.length) traces.push({
+      x: fccAtoms.map(p => p[0]),
+      y: fccAtoms.map(p => p[1]),
+      z: fccAtoms.map(p => p[2]),
+      type: 'scatter3d', mode: 'markers',
+      marker: { size: atomRadius, color: fccColor, line: { color: borderColor, width: borderWidth } },
+      showlegend: false
+    });
+
+    // Cell edges
+    lines.forEach(line => traces.push({
+      x: [points[line[0]][0], points[line[1]][0]],
+      y: [points[line[0]][1], points[line[1]][1]],
+      z: [points[line[0]][2], points[line[1]][2]],
+      type: 'scatter3d', mode: 'lines',
+      line: { color: 'blue', width: 3 },
+      hoverinfo: 'skip',
+      showlegend: false
+    }));
+
+    return traces;
+  }
+
+  function drawCrystal() {
+    updateToggles();
+    planeActive = false;
+
+    const layout = {
+      margin: { l: 0, r: 0, b: 0, t: 0 },
+      showlegend: false,
+      scene: {
+        xaxis: { title: 'X' },
+        yaxis: { title: 'Y' },
+        zaxis: { title: 'Z' },
+        aspectmode: 'data'
+      }
+    };
+    Plotly.newPlot('plot', baseTraces(), layout, plotConfig);
+  }
+
+  function drawPlane() {
+  updateToggles();
+  planeActive = true;
+
+  const h = parseFloat(document.getElementById('h').value) || 0;
+  const k = parseFloat(document.getElementById('k').value) || 0;
+  const l = parseFloat(document.getElementById('l').value) || 0;
+
+  if (h === 0 && k === 0 && l === 0) {
+    alert("All indices cannot be zero");
+    return;
+  }
+
+  // Plane in fractional coords: h*x + k*y + l*z = 1
+  const EPS = 1e-9;
+
+  // Unit cube vertices (fractional)
+  const V = [
+    [0,0,0], [1,0,0], [0,1,0], [0,0,1],
+    [1,1,0], [1,0,1], [0,1,1], [1,1,1]
+  ];
+
+  // Cube edges as index pairs into V
+  const E = [
+    [0,1],[0,2],[0,3],
+    [1,4],[1,5],
+    [2,4],[2,6],
+    [3,5],[3,6],
+    [4,7],[5,7],[6,7]
+  ];
+
+  // Collect intersection points in fractional coordinates
+  const pts = [];
+
+  function pushUnique(p) {
+    for (let q of pts) {
+      if (Math.hypot(p[0]-q[0], p[1]-q[1], p[2]-q[2]) < 1e-7) return;
+    }
+    pts.push(p);
+  }
+
+  // Add intersections for each edge
+  for (const [iA, iB] of E) {
+    const p1 = V[iA], p2 = V[iB];
+    const f1 = h*p1[0] + k*p1[1] + l*p1[2] - 1;
+    const f2 = h*p2[0] + k*p2[1] + l*p2[2] - 1;
+    const df = f2 - f1;
+
+    if (Math.abs(df) > EPS) {
+      // Proper intersection along edge segment
+      const t = -f1 / df;
+      if (t >= -EPS && t <= 1+EPS) {
+        pushUnique([
+          p1[0] + t*(p2[0]-p1[0]),
+          p1[1] + t*(p2[1]-p1[1]),
+          p1[2] + t*(p2[2]-p1[2])
+        ]);
+      }
+    } else {
+      // Edge is parallel to plane. If entire edge lies in plane, include its endpoints.
+      if (Math.abs(f1) < EPS && Math.abs(f2) < EPS) {
+        pushUnique(p1);
+        pushUnique(p2);
+      }
+    }
+  }
+
+  if (pts.length < 3) {
+    alert("Plane does not intersect the unit cell.");
+    return;
+  }
+
+  // Sort polygon vertices robustly IN the plane.
+  // Normal in fractional coords:
+  const n = [h, k, l];
+  const nLen = Math.hypot(n[0], n[1], n[2]);
+  const nn = [n[0]/nLen, n[1]/nLen, n[2]/nLen];
+
+  // Choose a reference vector not parallel to n
+  let ref = Math.abs(nn[0]) < 0.9 ? [1,0,0] : [0,1,0];
+
+  // Build orthonormal basis (u, v) spanning the plane
+  function cross(a,b){ return [a[1]*b[2]-a[2]*b[1], a[2]*b[0]-a[0]*b[2], a[0]*b[1]-a[1]*b[0]]; }
+  function norm(a){ const L=Math.hypot(a[0],a[1],a[2]); return [a[0]/L,a[1]/L,a[2]/L]; }
+  const u = norm(cross(nn, ref));
+  const v = norm(cross(nn, u));
+
+  // Centroid
+  const c = pts.reduce((acc,p)=>[acc[0]+p[0],acc[1]+p[1],acc[2]+p[2]],[0,0,0]).map(s=>s/pts.length);
+
+  // Angle in plane for sorting (project onto u,v)
+  pts.sort((A,B)=>{
+    const ra = [A[0]-c[0], A[1]-c[1], A[2]-c[2]];
+    const rb = [B[0]-c[0], B[1]-c[1], B[2]-c[2]];
+    const au = ra[0]*u[0] + ra[1]*u[1] + ra[2]*u[2];
+    const av = ra[0]*v[0] + ra[1]*v[1] + ra[2]*v[2];
+    const bu = rb[0]*u[0] + rb[1]*u[1] + rb[2]*u[2];
+    const bv = rb[0]*v[0] + rb[1]*v[1] + rb[2]*v[2];
+    return Math.atan2(av, au) - Math.atan2(bv, bu);
+  });
+
+  // Convert fractional -> Cartesian using your cell vectors vx, vy, vz
+  const cart = pts.map(f => ([
+    f[0]*vx[0] + f[1]*vy[0] + f[2]*vz[0],
+    f[0]*vx[1] + f[1]*vy[1] + f[2]*vz[1],
+    f[0]*vx[2] + f[1]*vy[2] + f[2]*vz[2]
+  ]));
+
+  // Triangulate polygon as a triangle fan around vertex 0
+  const nVert = cart.length;
+  const I = [], J = [], K = [];
+  for (let i = 1; i < nVert - 1; i++) {
+    I.push(0); J.push(i); K.push(i+1);
+  }
+
+  const traces = baseTraces();
+  traces.push({
+    type: 'mesh3d',
+    x: cart.map(p=>p[0]),
+    y: cart.map(p=>p[1]),
+    z: cart.map(p=>p[2]),
+    i: I, j: J, k: K,
+    opacity: 0.5,
+    color: 'green',
+    name: `(${h} ${k} ${l}) plane`,
+    showlegend: false
+  });
+
+  const layout = {
+    margin: { l: 0, r: 0, b: 0, t: 0 },
+    showlegend: false,
+    scene: {
+      xaxis: { title: 'X' },
+      yaxis: { title: 'Y' },
+      zaxis: { title: 'Z' },
+      aspectmode: 'data'
+    }
+  };
+
+  Plotly.newPlot('plot', traces, layout, plotConfig);
+}
+
+  function clearPlane() {
+    planeActive = false;
+    drawCrystal();
+  }
+
+  function resetAll() {
+    ['a','b','c'].forEach((id,i) => document.getElementById(id).value = 1);
+    document.getElementById('alpha').value = 90;
+    document.getElementById('beta').value  = 90;
+    document.getElementById('gamma').value = 90;
+
+    document.getElementById('atomRadius').value = 5;
+    document.getElementById('atomBorderWidth').value = 1;
+    document.getElementById('scColor').value  = '#808080';
+    document.getElementById('bccColor').value = '#ff0000';
+    document.getElementById('fccColor').value = '#0000ff';
+    document.getElementById('atomBorderColor').value = '#000000';
+
+    document.getElementById('toggleBCC').checked = false;
+    document.getElementById('toggleFCC').checked = false;
+
+    document.getElementById('h').value = 1;
+    document.getElementById('k').value = 1;
+    document.getElementById('l').value = 1;
+
+    clearPlane();
+  }
+
+  /* ---------- Events ---------- */
+  document.getElementById('btnDraw').addEventListener('click', () => planeActive ? drawPlane() : drawCrystal());
+  document.getElementById('btnReset').addEventListener('click', resetAll);
+  document.getElementById('btnDrawPlane').addEventListener('click', drawPlane);
+  document.getElementById('btnClearPlane').addEventListener('click', clearPlane);
+  document.getElementById('toggleBCC').addEventListener('change', () => planeActive ? drawPlane() : drawCrystal());
+  document.getElementById('toggleFCC').addEventListener('change', () => planeActive ? drawPlane() : drawCrystal());
+
+  // Redraw on orientation/size changes (helps mobile)
+  window.addEventListener('resize', () => Plotly.Plots.resize('plot'));
+
+  // Enter to submit (useful on mobile keyboards)
+  ['a','b','c','alpha','beta','gamma','h','k','l','atomRadius','atomBorderWidth'].forEach(id => {
+    document.getElementById(id).addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') (planeActive ? drawPlane() : drawCrystal());
+    });
+  });
+
+  // Initial render
+  drawCrystal();
+</script>
+</body>
+</html>

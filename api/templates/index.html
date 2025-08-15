@@ -76,6 +76,7 @@
     <button class="crystal-btn" data-crystal="monoclinic">Monoclinic</button>
     <button class="crystal-btn" data-crystal="triclinic">Triclinic</button>
     <button class="crystal-btn" data-crystal="trigonal">Trigonal (Rhombohedral)</button>
+    <button class="crystal-btn" data-crystal="draw-param">Draw with Parametes</button>
   </div>
 
   <footer>&copy; 2025 Physicsium</footer>
@@ -107,13 +108,15 @@
         case 'trigonal':
           window.location.href = '/trigonal';
           break;
+        case 'draw-param':
+          window.location.href = '/draw_with_parameters';
+          break;
         default:
           alert(`Unknown crystal system: ${type}`);
       }
     });
   });
 </script>
-
 
 </body>
 </html>
